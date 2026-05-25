@@ -237,9 +237,12 @@ Options:
 
       let recipients = await getRecipients(process.argv);
       if (recipients.length === 0 && map.toJson().ownerKey) {
-        // If not specified, try to use encryptionState recipients or derive them
-        if (map["encryptionState"]?.recipients) {
-          recipients = map["encryptionState"].recipients;
+        // If not specified, try to use the stored recipients or derive them
+        const mapRecipients = map.toJson().recipients;
+        if (mapRecipients && mapRecipients.length > 0) {
+          recipients = mapRecipients;
+        } else if ((map as any)["encryptionState"]?.recipients) {
+          recipients = (map as any)["encryptionState"].recipients;
         } else {
           // If map is plaintext, we can derive the recipient from our own identity
           const identities = await getIdentities(process.argv);

@@ -22,4 +22,5 @@ export interface ContactMapJson {
   createdAt: string;
   updatedAt: string;
   contacts: Contact[];
+  recipients?: string[];
 }

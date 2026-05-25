@@ -43,7 +43,10 @@ export class ContactMap {
     }
     const decryptedJson = await decrypter.decrypt(rawEncrypted, "text");
     const map = ContactMap.fromJson(JSON.parse(decryptedJson));
-    const recipients = await Promise.all(identities.map((id) => identityToRecipient(id)));
+    let recipients = map.state.recipients;
+    if (!recipients || recipients.length === 0) {
+      recipients = await Promise.all(identities.map((id) => identityToRecipient(id)));
+    }
     map.encryptionState = { path, identities, recipients };
     return map;
   }
@@ -53,10 +56,11 @@ export class ContactMap {
     const jsonStr = JSON.stringify(this.state, null, 2);
 
     if (this.encryptionState || path.endsWith(".age")) {
-      const recipients = this.encryptionState?.recipients;
+      const recipients = this.state.recipients || this.encryptionState?.recipients;
       if (!recipients || recipients.length === 0) {
         throw new Error("No recipients configured for encryption. Use saveEncrypted instead.");
       }
+      this.state.recipients = recipients;
       const encrypter = new Encrypter();
       for (const r of recipients) {
         encrypter.addRecipient(r);
@@ -70,6 +74,7 @@ export class ContactMap {
 
   async saveEncrypted(path: string, recipients: string[]): Promise<void> {
     this.state.updatedAt = new Date().toISOString();
+    this.state.recipients = recipients;
     const jsonStr = JSON.stringify(this.state, null, 2);
     const encrypter = new Encrypter();
     for (const r of recipients) {

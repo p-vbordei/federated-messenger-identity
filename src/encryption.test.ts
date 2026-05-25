@@ -93,6 +93,14 @@ test("Encryption: multi-recipient support", async () => {
     // Can decrypt with id2
     const loaded2 = await ContactMap.openEncrypted(testFile, [id2]);
     assert.equal(loaded2.list()[0]?.id, "bob");
+    
+    // loaded1 should be able to save and not strip r2
+    loaded1.addHandle("bob", { channel: "slack", handle: "b" });
+    await loaded1.save(testFile);
+    
+    // if r2 was stripped, this will throw
+    const loaded2AfterSave = await ContactMap.openEncrypted(testFile, [id2]);
+    assert.equal(loaded2AfterSave.handle("bob", "slack"), "b");
   } finally {
     try {
       await fs.unlink(testFile);
