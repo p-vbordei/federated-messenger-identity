@@ -1,8 +1,15 @@
 import { promises as fs } from "node:fs";
 import type { Contact, ContactMapJson, Handle } from "./types.ts";
 import { normalizeChannel, normalizeHandle } from "./normalize.ts";
+import { Encrypter, Decrypter, identityToRecipient } from "age-encryption";
 
 export class ContactMap {
+  private encryptionState?: {
+    path: string;
+    identities: string[];
+    recipients: string[];
+  };
+
   private constructor(private state: ContactMapJson) {}
 
   static empty(ownerKey: string): ContactMap {
@@ -28,9 +35,49 @@ export class ContactMap {
     return ContactMap.fromJson(JSON.parse(raw));
   }
 
+  static async openEncrypted(path: string, identities: string[]): Promise<ContactMap> {
+    const rawEncrypted = await fs.readFile(path);
+    const decrypter = new Decrypter();
+    for (const id of identities) {
+      decrypter.addIdentity(id);
+    }
+    const decryptedJson = await decrypter.decrypt(rawEncrypted, "text");
+    const map = ContactMap.fromJson(JSON.parse(decryptedJson));
+    const recipients = await Promise.all(identities.map((id) => identityToRecipient(id)));
+    map.encryptionState = { path, identities, recipients };
+    return map;
+  }
+
   async save(path: string): Promise<void> {
     this.state.updatedAt = new Date().toISOString();
-    await fs.writeFile(path, JSON.stringify(this.state, null, 2));
+    const jsonStr = JSON.stringify(this.state, null, 2);
+
+    if (this.encryptionState || path.endsWith(".age")) {
+      const recipients = this.encryptionState?.recipients;
+      if (!recipients || recipients.length === 0) {
+        throw new Error("No recipients configured for encryption. Use saveEncrypted instead.");
+      }
+      const encrypter = new Encrypter();
+      for (const r of recipients) {
+        encrypter.addRecipient(r);
+      }
+      const ciphertext = await encrypter.encrypt(jsonStr);
+      await fs.writeFile(path, ciphertext);
+    } else {
+      await fs.writeFile(path, jsonStr);
+    }
+  }
+
+  async saveEncrypted(path: string, recipients: string[]): Promise<void> {
+    this.state.updatedAt = new Date().toISOString();
+    const jsonStr = JSON.stringify(this.state, null, 2);
+    const encrypter = new Encrypter();
+    for (const r of recipients) {
+      encrypter.addRecipient(r);
+    }
+    const ciphertext = await encrypter.encrypt(jsonStr);
+    await fs.writeFile(path, ciphertext);
+    this.encryptionState = { path, identities: this.encryptionState?.identities || [], recipients };
   }
 
   toJson(): ContactMapJson {
@@ -41,8 +88,11 @@ export class ContactMap {
     if (this.state.contacts.find((c) => c.id === contact.id)) {
       throw new Error(`Contact ${contact.id} already exists`);
     }
+    const now = new Date().toISOString();
     this.state.contacts.push({
       ...contact,
+      createdAt: contact.createdAt || now,
+      updatedAt: contact.updatedAt || now,
       handles: contact.handles.map((h) => ({
         ...h,
         channel: normalizeChannel(h.channel),
@@ -60,13 +110,18 @@ export class ContactMap {
     };
     if (c.handles.find((h) => h.channel === norm.channel && h.handle === norm.handle)) return;
     c.handles.push(norm);
+    c.updatedAt = new Date().toISOString();
   }
 
   removeHandle(contactId: string, channel: string, handle: string): void {
     const c = this.requireContact(contactId);
     const nch = normalizeChannel(channel);
     const nh = normalizeHandle(channel, handle);
+    const lenBefore = c.handles.length;
     c.handles = c.handles.filter((h) => !(h.channel === nch && h.handle === nh));
+    if (c.handles.length !== lenBefore) {
+      c.updatedAt = new Date().toISOString();
+    }
   }
 
   merge(other: ContactMap): void {
@@ -80,7 +135,21 @@ export class ContactMap {
       if (!existing) {
         this.add(oc);
       } else {
-        for (const h of oc.handles) this.addHandle(oc.id, h);
+        const existingTime = new Date(existing.updatedAt || 0).getTime();
+        const otherTime = new Date(oc.updatedAt || 0).getTime();
+        if (otherTime > existingTime) {
+          const idx = this.state.contacts.indexOf(existing);
+          this.state.contacts[idx] = structuredClone(oc);
+        } else if (otherTime === existingTime) {
+          for (const h of oc.handles) {
+            this.addHandle(oc.id, h);
+          }
+          if (oc.notes && !existing.notes) existing.notes = oc.notes;
+          if (oc.primaryChannel && !existing.primaryChannel) existing.primaryChannel = oc.primaryChannel;
+          if (oc.groups) {
+            existing.groups = Array.from(new Set([...(existing.groups || []), ...oc.groups]));
+          }
+        }
       }
     }
   }

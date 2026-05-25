@@ -82,10 +82,10 @@ const slack = map.handle("alice", "slack");        // "T0XYZ789:U0ABC123"
 - [x] CLI for the above
 - [x] Plaintext file format (encryption helper in v0.2)
 - [x] Unit tests
-- [ ] Encrypted at rest via `age` recipients (multi-device, revocable)
-- [ ] MCP server (`fmi.resolve`, `fmi.handle`, `fmi.search`)
-- [ ] Resolver plugins for popular agent frameworks
-- [ ] Sync protocol over E2EE channels (no server)
+- [x] Encrypted at rest via `age` recipients (multi-device, revocable)
+- [x] MCP server (`fmi.resolve`, `fmi.handle`, `fmi.search`)
+- [x] Resolver plugins for popular agent frameworks
+- [x] Sync protocol over E2EE channels (no server)
 
 ## Why per-channel handle, not "canonical phone number"
 
@@ -113,13 +113,13 @@ People deliberately use different identities in different channels: a work email
 
 ## Roadmap
 
-| Milestone | What |
-|---|---|
-| v0.1 | Schema + lib + CLI + tests (plaintext file) |
-| v0.2 | age-encrypted file format + multi-recipient |
-| v0.3 | MCP server + resolver plugins for agent frameworks |
-| v0.4 | E2EE peer sync (no server) |
-| v0.5 | Browser extension that auto-resolves "who is this?" on social platforms |
+| Milestone | Status | What |
+|---|---|---|
+| v0.1 | Done | Schema + lib + CLI + tests (plaintext file) |
+| v0.2 | Done | age-encrypted file format + multi-recipient |
+| v0.3 | Done | MCP server + resolver plugins for agent frameworks |
+| v0.4 | Done | E2EE peer sync (no server) |
+| v0.5 | Planned | Browser extension that auto-resolves "who is this?" on social platforms |
 
 ## References
 

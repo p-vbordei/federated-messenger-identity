@@ -5,19 +5,38 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": { "fmi": "./dist/cli.js" },
-  "files": ["dist", "README.md", "ARCHITECTURE.md", "LICENSE"],
+  "bin": {
+    "fmi": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "ARCHITECTURE.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "node --test --import tsx 'src/**/*.test.ts'",
     "cli": "tsx src/cli.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
-  "keywords": ["identity", "messaging", "agent", "ai", "contacts", "privacy"],
+  "keywords": [
+    "identity",
+    "messaging",
+    "agent",
+    "ai",
+    "contacts",
+    "privacy"
+  ],
   "author": "Vlad Bordei <bordeivlad@gmail.com> (https://github.com/p-vbordei)",
   "license": "Apache-2.0",
-  "engines": { "node": ">=22.19.0" },
-  "dependencies": {},
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "age-encryption": "^0.3.0"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "tsx": "^4.19.0",

@@ -12,6 +12,8 @@ export interface Contact {
   primaryChannel?: string;
   handles: Handle[];
   groups?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ContactMapJson {
